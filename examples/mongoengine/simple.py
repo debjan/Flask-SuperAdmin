@@ -50,7 +50,7 @@ def index():
     return '<a href="/admin/">Click me to get to Admin!</a>'
 
 if __name__ == '__main__':
-    
+
     # Create admin
     admin = Admin(app, 'Simple Models')
 

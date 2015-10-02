@@ -6,8 +6,8 @@ import inspect
 from werkzeug import secure_filename
 from wtforms import Form, validators, fields as f
 
-from fields import ModelSelectField, ModelSelectMultipleField, ListField
-from mongoengine.fields import ReferenceField, IntField, FloatField
+from .fields import ModelSelectField, ModelSelectMultipleField, ListField
+from mongoengine.fields import ReferenceField, IntField
 
 from flask_superadmin.model import AdminModelConverter as AdminModelConverter_
 
@@ -42,7 +42,7 @@ class ModelConverter(object):
 
     def convert(self, model, field, field_args, multiple=False):
         kwargs = {
-            'label': unicode(field.verbose_name or field.name or ''),
+            'label': str(field.verbose_name or field.name or ''),
             'description': field.help_text or '',
             'validators': [],
             'filters': [],
@@ -54,7 +54,7 @@ class ModelConverter(object):
         if field.required:
 
             # Hacky but necessary, since validators.Required doesn't handle 0 properly
-            if isinstance(field, IntField) or isinstance(field, FloatField):
+            if isinstance(field, IntField):
                 kwargs['validators'].append(validators.InputRequired())
             else:
                 kwargs['validators'].append(validators.Required())
@@ -160,7 +160,7 @@ class ModelConverter(object):
         kwargs = kwargs or {
             'validators': [],
             'filters': [],
-            'label': unicode(field.verbose_name or field.name or ''),
+            'label': str(field.verbose_name or field.name or ''),
         }
         if field.field.choices:
             return self.convert(model, field.field, None, multiple=True)
@@ -220,7 +220,7 @@ def model_fields(model, fields=None, readonly_fields=None, exclude=None,
     converter = converter or ModelConverter()
     field_args = field_args or {}
 
-    field_names = fields if fields else model._fields.keys()
+    fields if fields else list(model._fields.keys())
     field_names = (x for x in field_names if x not in exclude)
 
     field_dict = {}
@@ -242,6 +242,7 @@ import mongoengine.fields as fields
 _unset_value = object()
 _remove_file_value = object()
 
+
 def data_to_field(field, data):
     if isinstance(field, fields.EmbeddedDocumentField):
         return data_to_document(field.document_type_obj, data)
@@ -254,7 +255,6 @@ def data_to_field(field, data):
     elif isinstance(field, (fields.FileField)):
         if data.filename:
             gfs = field.proxy_class(
-                        db_alias=field.db_alias,
                         collection_name=field.collection_name,
                         instance=field.owner_document(),
                         key=field.name)
@@ -264,7 +264,7 @@ def data_to_field(field, data):
             return _remove_file_value
         return _unset_value
     elif isinstance(field, (fields.ReferenceField, fields.ObjectIdField)) and \
-                    isinstance(data, basestring):
+                    isinstance(data, str):
         from bson.objectid import ObjectId
         return ObjectId(data)
     else:
@@ -274,7 +274,7 @@ def data_to_field(field, data):
 def data_to_document(document, data):
     from inspect import isclass
     new = document() if isclass(document) else document
-    for name, value in data.iteritems():
+    for name, value in list(data.items()):
         field = getattr(new.__class__, name)
         field_value = data_to_field(field, value)
         if field_value != _unset_value:
@@ -326,4 +326,3 @@ def model_form(model, base_class=Form, fields=None, readonly_fields=None,
 
 class AdminModelConverter(AdminModelConverter_, ModelConverter):
     pass
-

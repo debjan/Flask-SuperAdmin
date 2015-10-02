@@ -1,8 +1,8 @@
 from nose.tools import eq_, ok_, raises
 
-import wtforms
-
 from flask import Flask
+
+from flask.ext import wtf
 
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import InvalidRequestError
@@ -13,7 +13,7 @@ from flask_superadmin.model.backends.sqlalchemy.view import ModelAdmin
 class CustomModelView(ModelAdmin):
     def __init__(self, model, session, name=None, category=None,
                  endpoint=None, url=None, **kwargs):
-        for k, v in kwargs.iteritems():
+        for k, v in list(kwargs.items()):
             setattr(self, k, v)
 
         super(CustomModelView, self).__init__(model, session, name, category,
@@ -50,7 +50,7 @@ def create_models(db):
 def setup():
     app = Flask(__name__)
     app.config['SECRET_KEY'] = '1'
-    app.config['WTF_CSRF_ENABLED'] = False
+    app.config['CSRF_ENABLED'] = False
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///'
 
     db = SQLAlchemy(app)
@@ -76,10 +76,10 @@ def test_model():
     # Verify form
     with app.test_request_context():
         Form = view.get_form()
-        ok_(isinstance(Form()._fields['test1'], wtforms.TextField))
-        ok_(isinstance(Form()._fields['test2'], wtforms.TextField))
-        ok_(isinstance(Form()._fields['test3'], wtforms.TextAreaField))
-        ok_(isinstance(Form()._fields['test4'], wtforms.TextAreaField))
+        ok_(isinstance(Form()._fields['test1'], wtf.TextField))
+        ok_(isinstance(Form()._fields['test2'], wtf.TextField))
+        ok_(isinstance(Form()._fields['test3'], wtf.TextAreaField))
+        ok_(isinstance(Form()._fields['test4'], wtf.TextAreaField))
 
     # Make some test clients
     client = app.test_client()
@@ -286,6 +286,7 @@ def test_non_int_pk():
     eq_(resp.status_code, 200)
     ok_('test2' in resp.data)
 
+
 def test_reference_linking():
     app, db, admin = setup()
 
@@ -343,4 +344,3 @@ def test_reference_linking():
     resp = client.get('/admin/person/%s/' % person.id)
     ok_('<input class="" id="name" name="name" type="text" value="Stan">' in resp.data)
     ok_(dog_link in resp.data)
-

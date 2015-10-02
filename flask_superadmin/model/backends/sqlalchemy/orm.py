@@ -2,7 +2,6 @@
 Tools for generating forms based on SQLAlchemy Model schemas.
 """
 
-from sqlalchemy import Column
 from sqlalchemy.orm.exc import NoResultFound
 
 from wtforms import Form, ValidationError, fields, validators
@@ -39,7 +38,7 @@ class Unique(object):
 
             if not hasattr(form, '_obj') or not form._obj == obj:
                 if self.message is None:
-                    self.message = field.gettext(u'Already exists.')
+                    self.message = field.gettext('Already exists.')
                 raise ValidationError(self.message)
         except NoResultFound:
             pass
@@ -115,11 +114,6 @@ class AdminModelConverter(ModelConverter):
             if hasattr(prop, 'columns'):
                 column = prop.columns[0]
 
-                # Column can be SQL expressions
-                # WTForms cannot convert them
-                if not isinstance(column, Column):
-                    return None
-
                 # Do not display foreign keys - use relations
                 if column.foreign_keys:
                     return None
@@ -175,10 +169,6 @@ class AdminModelConverter(ModelConverter):
     @converts('Time')
     def convert_time(self, field_args, **extra):
         return form.TimeField(**field_args)
-
-    @converts('Text')
-    def conv_Text_fix(self, field_args, **extra):
-        return self.conv_Text(field_args, **extra)
 
 
 def model_form(model, base_class=Form, fields=None, readonly_fields=None,

@@ -1,14 +1,14 @@
 from flask import Flask
-from flask.ext.superadmin import Admin, model
+from flask.ext.superadmin import Admin
 
-from utils import install_models
+from .utils import install_models
 
 
-#For using with django
+# For using with django
 from django.conf import settings
 
 settings.configure(
-    DATABASES = {
+    DATABASES={
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': 'mydatabase.sqlite',
@@ -29,8 +29,9 @@ app.config['SECRET_KEY'] = '123456790'
 class User(models.Model):
     class Meta:
         app_label = 'users'
-    username = models.CharField(max_length=255,unique=True)
-    email = models.CharField(max_length=255,unique=True)
+    username = models.CharField(max_length=255, unique=True)
+    email = models.CharField(max_length=255, unique=True)
+
     def __unicode__(self):
         return self.username
 
@@ -42,6 +43,7 @@ class Post(models.Model):
     text = models.TextField()
     date = models.DateField()
     user = models.ForeignKey(User)
+
     def __unicode__(self):
         return self.title
 
@@ -63,7 +65,7 @@ if __name__ == '__main__':
 
     # Create tables in database if not exists
     try:
-        install_models(User,Post)
+        install_models(User, Post)
     except:
         pass
 

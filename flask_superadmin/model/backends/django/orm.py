@@ -61,7 +61,7 @@ class AdminModelConverter(ModelConverterBase):
         converters = {}
         if simple_conversions is None:
             simple_conversions = self.DEFAULT_SIMPLE_CONVERSIONS
-        for field_type, django_fields in simple_conversions.iteritems():
+        for field_type, django_fields in list(simple_conversions.items()):
             converter = self.make_simple_converter(field_type)
             for name in django_fields:
                 converters[name] = converter
@@ -196,4 +196,3 @@ def model_form(model, base_class=Form, fields=None, readonly_fields=None,
     field_dict = model_fields(model, fields, readonly_fields, exclude,
                               field_args, converter)
     return type(model._meta.object_name + 'Form', (base_class, ), field_dict)
-

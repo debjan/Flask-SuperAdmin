@@ -1,6 +1,6 @@
-from sqlalchemy.sql.expression import desc, literal_column, or_
+from sqlalchemy.sql.expression import desc, literal_column
 
-from orm import model_form, AdminModelConverter
+from .orm import model_form, AdminModelConverter
 
 from flask_superadmin.model.base import BaseModelAdmin
 from sqlalchemy import schema
@@ -72,7 +72,7 @@ class ModelAdmin(BaseModelAdmin):
 
     def delete_models(self, *pks):
         objs = self.get_objects(*pks)
-        [self.session.delete(x) for x in objs]
+        objs.delete(synchronize_session='fetch')
         self.session.commit()
         return True
 
@@ -80,7 +80,7 @@ class ModelAdmin(BaseModelAdmin):
         if op == '^':
             return literal_column(field_name).startswith
         elif op == '=':
-            return literal_column(field_name).op('=')
+            return literal_column(field_name).op('==')
         else:
             return literal_column(field_name).contains
 
@@ -95,7 +95,7 @@ class ModelAdmin(BaseModelAdmin):
                            for model_field in self.search_fields]
             or_queries.extend([orm_lookup(word) for orm_lookup in orm_lookups])
         if or_queries:
-            qs = qs.filter(or_(*or_queries))
+            qs = qs.filter(sum(or_queries))
         return qs
 
     def get_list(self, page=0, sort=None, sort_desc=None, execute=False, search_query=None):
@@ -105,10 +105,10 @@ class ModelAdmin(BaseModelAdmin):
         if search_query and self.search_fields:
             qs = self.apply_search(qs, search_query)
 
-        #Calculate number of rows
+        # Calculate number of rows
         count = qs.count()
 
-        #Order queryset
+        # Order queryset
         if sort:
             if sort_desc:
                 sort = desc(sort)

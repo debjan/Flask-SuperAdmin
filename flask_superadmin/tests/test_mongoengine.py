@@ -1,8 +1,7 @@
-from nose.tools import eq_, ok_, raises
-
-import wtforms
+from nose.tools import eq_, ok_
 
 from flask import Flask
+from flask.ext import wtf
 from mongoengine import *
 
 from flask_superadmin import Admin
@@ -12,7 +11,7 @@ from flask_superadmin.model.backends.mongoengine.view import ModelAdmin
 class CustomModelView(ModelAdmin):
     def __init__(self, model, name=None, category=None, endpoint=None,
                  url=None, **kwargs):
-        for k, v in kwargs.iteritems():
+        for k, v in list(kwargs.items()):
             setattr(self, k, v)
 
         super(CustomModelView, self).__init__(model, name, category, endpoint,
@@ -23,7 +22,7 @@ def setup():
     connect('superadmin_test')
     app = Flask(__name__)
     app.config['SECRET_KEY'] = '1'
-    app.config['WTF_CSRF_ENABLED'] = False
+    app.config['CSRF_ENABLED'] = False
 
     admin = Admin(app)
 
@@ -50,8 +49,8 @@ def test_model():
     # Verify form
     with app.test_request_context():
         Form = view.get_form()
-        ok_(isinstance(Form()._fields['name'], wtforms.TextAreaField))
-        ok_(isinstance(Form()._fields['age'], wtforms.IntegerField))
+        ok_(isinstance(Form()._fields['name'], wtf.TextAreaField))
+        ok_(isinstance(Form()._fields['age'], wtf.IntegerField))
 
     # Make some test clients
     client = app.test_client()
@@ -137,7 +136,8 @@ def test_exclude():
     # Verify form
     with app.test_request_context():
         Form = view.get_form()
-        eq_(Form()._fields.keys(), ['csrf_token', 'age'])
+        eq_(list(Form()._fields.keys()), ['csrf_token', 'age'])
+
 
 def test_fields():
     app, admin = setup()
@@ -154,7 +154,8 @@ def test_fields():
     # Verify form
     with app.test_request_context():
         Form = view.get_form()
-        eq_(Form()._fields.keys(), ['csrf_token', 'name'])
+        eq_(list(Form()._fields.keys()), ['csrf_token', 'name'])
+
 
 def test_fields_and_exclude():
     app, admin = setup()
@@ -171,7 +172,8 @@ def test_fields_and_exclude():
     # Verify form
     with app.test_request_context():
         Form = view.get_form()
-        eq_(Form()._fields.keys(), ['csrf_token', 'age'])
+        eq_(list(Form()._fields.keys()), ['csrf_token', 'age'])
+
 
 def test_search_fields():
     app, admin = setup()
@@ -237,6 +239,7 @@ def test_pagination():
     ok_('Steve' in resp.data)
     ok_('Ron' in resp.data)
 
+
 def test_sort():
     app, admin = setup()
 
@@ -279,6 +282,7 @@ def test_sort():
     ok_('Michael' in resp.data)
     ok_('Ron' in resp.data)
     ok_('Steve' not in resp.data)
+
 
 def test_reference_linking():
     app, admin = setup()
@@ -323,6 +327,7 @@ def test_reference_linking():
     ok_('<input class="" id="age" name="age" type="text" value="10">' in resp.data)
     ok_(dog_link in resp.data)
 
+
 def test_no_csrf_in_form():
     app, admin = setup()
 
@@ -343,6 +348,7 @@ def test_no_csrf_in_form():
     ok_('<input class="" id="age" name="age" type="text" value="10">' in resp.data)
     ok_('<label for="csrf_token">Csrf Token</label>' not in resp.data)
 
+
 def test_requred_int_field():
     app, admin = setup()
 
@@ -361,4 +367,3 @@ def test_requred_int_field():
     eq_(resp.status_code, 302)
     ok_('This field is required.' not in resp.data)
     ok_('error.' not in resp.data)
-

@@ -1,7 +1,9 @@
+from django.core.management.color import no_style
+from django.db import connections, transaction
+
+
 def install_models(*all_models):
-    from django.core.management.color import no_style
-    from django.core.management.sql import custom_sql_for_model, emit_post_sync_signal
-    from django.db import connections, router, transaction, models, DEFAULT_DB_ALIAS
+
     db = 'default'
     connection = connections[db]
     cursor = connection.cursor()
@@ -11,6 +13,7 @@ def install_models(*all_models):
     seen_models = connection.introspection.installed_models(tables)
     created_models = set()
     pending_references = {}
+
     def model_installed(model):
         opts = model._meta
         converter = connection.introspection.table_name_converter
@@ -21,7 +24,7 @@ def install_models(*all_models):
         sql, references = connection.creation.sql_create_model(model, style, seen_models)
         seen_models.add(model)
         created_models.add(model)
-        for refto, refs in references.items():
+        for refto, refs in list(references.items()):
             pending_references.setdefault(refto, []).extend(refs)
             if refto in seen_models:
                 sql.extend(connection.creation.sql_for_pending_references(refto, style, pending_references))

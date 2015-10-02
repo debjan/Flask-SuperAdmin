@@ -1,16 +1,16 @@
 from flask_superadmin.model.base import BaseModelAdmin
 
-from orm import model_form, AdminModelConverter
+from .orm import model_form, AdminModelConverter
 
 import operator
 import mongoengine
 
-from bson.objectid import ObjectId
+from functools import reduce
 
 SORTABLE_FIELDS = (
     mongoengine.BooleanField,
     mongoengine.DateTimeField,
-    #mongoengine.DecimalField,
+    # mongoengine.DecimalField,
     mongoengine.FloatField,
     mongoengine.IntField,
     mongoengine.StringField,
@@ -78,10 +78,10 @@ class ModelAdmin(BaseModelAdmin):
                               for orm_lookup in orm_lookups]
                 qs = qs.filter(reduce(operator.or_, or_queries))
 
-        #Calculate number of documents
+        # Calculate number of documents
         count = qs.count()
 
-        #Order queryset
+        # Order queryset
         if sort:
             qs = qs.order_by('%s%s' % ('-' if sort_desc else '', sort))
 
@@ -94,4 +94,3 @@ class ModelAdmin(BaseModelAdmin):
             qs = qs.all()
 
         return count, qs
-

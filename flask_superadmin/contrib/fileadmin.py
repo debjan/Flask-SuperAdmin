@@ -1,7 +1,7 @@
 import os
 import os.path as op
 import platform
-import urlparse
+import urllib.parse
 import re
 import shutil
 
@@ -14,8 +14,7 @@ from flask import flash, url_for, redirect, abort, request
 from flask_superadmin.base import BaseView, expose
 from flask_superadmin.babel import gettext, lazy_gettext
 from flask_superadmin import form
-from flask_wtf.file import FileField
-from wtforms import TextField, ValidationError
+from flask.ext import wtf
 
 
 class NameForm(form.BaseForm):
@@ -24,14 +23,14 @@ class NameForm(form.BaseForm):
 
         Validates if provided name is valid for *nix and Windows systems.
     """
-    name = TextField()
+    name = wtf.TextField()
 
     regexp = re.compile(r'^(?!^(PRN|AUX|CLOCK\$|NUL|CON|COM\d|LPT\d|\..*)'
                         r'(\..+)?$)[^\x00-\x1f\\?*:\";|/]+$')
 
     def validate_name(self, field):
         if not self.regexp.match(field.data):
-            raise ValidationError(gettext('Invalid directory name'))
+            raise wtf.ValidationError(gettext('Invalid directory name'))
 
 
 class UploadForm(form.BaseForm):
@@ -39,7 +38,7 @@ class UploadForm(form.BaseForm):
         File upload form. Works with FileAdmin instance to check if it
         is allowed to upload file with given extension.
     """
-    upload = FileField(lazy_gettext('File to upload'))
+    upload = wtf.FileField(lazy_gettext('File to upload'))
 
     def __init__(self, admin):
         self.admin = admin
@@ -48,12 +47,12 @@ class UploadForm(form.BaseForm):
 
     def validate_upload(self, field):
         if not self.upload.has_file():
-            raise ValidationError(gettext('File required.'))
+            raise wtf.ValidationError(gettext('File required.'))
 
         filename = self.upload.data.filename
 
         if not self.admin.is_file_allowed(filename):
-            raise ValidationError(gettext('Invalid file type.'))
+            raise wtf.ValidationError(gettext('Invalid file type.'))
 
 
 class FileAdmin(BaseView):
@@ -253,7 +252,8 @@ class FileAdmin(BaseView):
                 Static file path
         """
         base_url = self.get_base_url()
-        return urlparse.urljoin(base_url, path)
+
+        return urllib.parse.urljoin(base_url, path)
 
     def _normalize_path(self, path):
         """
@@ -363,14 +363,14 @@ class FileAdmin(BaseView):
                 try:
                     self.save_file(filename, form.upload.data)
                     return redirect(self._get_dir_url('.index', path))
-                except Exception, ex:
+                except Exception as ex:
                     flash(gettext('Failed to save file: %(error)s', error=ex))
 
         return self.render(self.upload_template,
                            form=form,
                            base_path=base_path,
                            path=path,
-                           msg=gettext(u'Upload a file'))
+                           msg=gettext('Upload a file'))
 
     @expose('/mkdir/', methods=('GET', 'POST'))
     @expose('/mkdir/<path:path>', methods=('GET', 'POST'))
@@ -397,7 +397,7 @@ class FileAdmin(BaseView):
             try:
                 os.mkdir(op.join(directory, form.name.data))
                 return redirect(dir_url)
-            except Exception, ex:
+            except Exception as ex:
                 flash(gettext('Failed to create directory: %(error)s', ex),
                       'error')
 
@@ -406,7 +406,7 @@ class FileAdmin(BaseView):
                            dir_url=dir_url,
                            base_path=base_path,
                            path=path,
-                           msg=gettext(u'Create a new directory'))
+                           msg=gettext('Create a new directory'))
 
     @expose('/delete/', methods=('POST',))
     def delete(self):
@@ -437,7 +437,7 @@ class FileAdmin(BaseView):
                 flash(
                     gettext('Directory "%s" was successfully deleted.' % path)
                 )
-            except Exception, ex:
+            except Exception as ex:
                 flash(
                     gettext('Failed to delete directory: %(error)s', error=ex),
                     'error'
@@ -447,7 +447,7 @@ class FileAdmin(BaseView):
                 os.remove(full_path)
                 flash(gettext('File "%(name)s" was successfully deleted.',
                               name=path))
-            except Exception, ex:
+            except Exception as ex:
                 flash(gettext('Failed to delete file: %(name)s',
                               name=ex), 'error')
 
@@ -485,7 +485,7 @@ class FileAdmin(BaseView):
                 flash(gettext('Successfully renamed "%(src)s" to "%(dst)s"',
                       src=op.basename(path),
                       dst=filename))
-            except Exception, ex:
+            except Exception as ex:
                 flash(gettext('Failed to rename: %(error)s',
                               error=ex), 'error')
 

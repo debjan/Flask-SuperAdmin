@@ -10,6 +10,7 @@ from flask_superadmin.form import (BaseForm, ChosenSelectWidget, FileField,
                                    DatePickerWidget, DateTimePickerWidget)
 
 import traceback
+import collections
 
 
 class AdminModelConverter(object):
@@ -65,7 +66,6 @@ class BaseModelAdmin(BaseView):
     readonly_fields = tuple()
     exclude = tuple()
 
-    # A base class for form rendering. If `None`, `BaseForm` would be used.
     form = None
 
     can_edit = True
@@ -118,11 +118,12 @@ class BaseModelAdmin(BaseView):
             # admin's methods have higher priority than the fields/methods on
             # the model or document. If a callable is found on the admin
             # level, it's also passed an instance object
-            if hasattr(self, p) and callable(getattr(self, p)):
+            if hasattr(self, p) and isinstance(getattr(self, p),
+                                               collections.Callable):
                 value = getattr(self, p)(instance)
             else:
                 value = getattr(value, p, None)
-                if callable(value):
+                if isinstance(value, collections.Callable):
                     value = value()
 
             if not value:
@@ -134,19 +135,17 @@ class BaseModelAdmin(BaseView):
         for model, model_view in self.admin._models:
             if type(column_value) == model:
                 return '/admin/%s/%s/' % (model_view.endpoint,
-                                          model_view.get_pk(column_value))
+                                          self.get_pk(column_value))
 
     def get_readonly_fields(self, instance):
         ret_vals = {}
-        if not instance:
-            return ret_vals
         for field in self.readonly_fields:
             self_field = getattr(self, field, None)
-            if callable(self_field):
+            if isinstance(self_field, collections.Callable):
                 val = self_field(instance)
             else:
                 val = getattr(instance, field)
-                if callable(val):
+                if isinstance(val, collections.Callable):
                     val = val()
             if not isinstance(val, dict):
                 # Check if the value is a reference field to a doc/model
@@ -174,9 +173,7 @@ class BaseModelAdmin(BaseView):
         converter = self.get_converter()
         if isinstance(converter, type):
             converter = converter()
-        base_class = self.form or BaseForm
-        form = model_form(self.model, base_class=base_class,
-                          fields=self.fields,
+        form = model_form(self.model, base_class=BaseForm, fields=self.fields,
                           readonly_fields=self.readonly_fields,
                           exclude=self.exclude, field_args=self.field_args,
                           converter=converter)
@@ -248,20 +245,15 @@ class BaseModelAdmin(BaseView):
                     flash(gettext('New %(model)s saved successfully',
                           model=self.get_display_name()), 'success')
                     return self.dispatch_save_redirect(instance)
-                except Exception, ex:
-                    print traceback.format_exc()
+                except Exception as ex:
+                    print((traceback.format_exc()))
                     if hasattr(self, 'session'):
                         self.session.rollback()
                     flash(gettext('Failed to add model. %(error)s',
                           error=str(ex)), 'error')
 
         else:
-            try:
-                form = Form(obj=self.model())
-            except TypeError:
-                raise Exception('The database model for %r should have an '
-                                '__init__ with all arguments set to defaults.'
-                                % self.model.__name__)
+            form = Form(obj=self.model())
 
         return self.render(self.add_template, model=self.model, form=form)
 
@@ -344,8 +336,8 @@ class BaseModelAdmin(BaseView):
                         'success'
                     )
                     return self.dispatch_save_redirect(instance)
-                except Exception, ex:
-                    print traceback.format_exc()
+                except Exception as ex:
+                    print((traceback.format_exc()))
                     flash(gettext('Failed to edit model. %(error)s',
                                   error=str(ex)), 'error')
         else:
